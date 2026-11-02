@@ -236,6 +236,7 @@
       color: var(--accent);
     }
     .tag.taste { background: rgba(0,0,0,0.06); color: var(--text-muted); }
+    .tag.match { background: #e0f2fe; color: #0284c7; }
 
     .card h3 {
       margin: 0 0 6px;
@@ -247,6 +248,18 @@
       font-size: 13px;
       color: var(--text-muted);
       margin-top: auto;
+    }
+
+    .bzhu-badge {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.03);
+      padding: 4px 8px;
+      border-radius: 8px;
+      width: fit-content;
     }
 
     /* Модальные окна */
@@ -299,23 +312,25 @@
     .form-row { display: flex; gap: 10px; }
     .form-row > * { flex: 1; }
 
+    /* Строка добавления ингредиента с БЖУ */
     .ing-row {
       display: flex;
-      gap: 6px;
+      gap: 5px;
       margin-bottom: 6px;
       align-items: center;
     }
-    .ing-row input:first-child { flex: 2; }
-    .ing-row input { flex: 1; min-width: 0; }
+    .ing-row input:first-child { flex: 2.2; min-width: 80px; }
+    .ing-row input { flex: 1; min-width: 42px; text-align: center; padding: 8px 4px; font-size: 13px; }
     .btn-del {
       background: var(--accent-soft);
       border: none;
       color: var(--accent);
       border-radius: 8px;
-      width: 34px;
-      height: 38px;
+      width: 32px;
+      height: 36px;
       cursor: pointer;
       font-size: 18px;
+      flex-shrink: 0;
     }
     .btn-add-ing {
       background: transparent;
@@ -348,7 +363,7 @@
     }
     .ing-left { display: flex; align-items: center; gap: 8px; }
     .ing-left input:checked + span { text-decoration: line-through; color: var(--text-muted); }
-    .ing-right { color: var(--text-muted); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .ing-right { color: var(--text-muted); font-size: 13px; display: flex; align-items: center; gap: 8px; text-align: right; }
 
     /* Палитры */
     .color-swatches {
@@ -438,6 +453,7 @@
         <div id="authHeaderArea">
           <button class="btn btn-secondary" onclick="openAuthModal('login')">Вход / Регистрация</button>
         </div>
+        <button class="btn btn-secondary" onclick="openFridgeModal()">🥑 Что в холодильнике?</button>
         <button class="btn btn-secondary" onclick="openShopModal()">🫧 Корзина</button>
         <button class="btn btn-secondary" onclick="openThemeModal()">🎀 Тема</button>
         <button class="btn btn-secondary" onclick="openRandomModal()">🔮 Нет идей?</button>
@@ -479,6 +495,20 @@
     </div>
 
     <div class="grid" id="recipeGrid"></div>
+  </div>
+
+  <!-- Модалка холодильника (подбор блюд по продуктам) -->
+  <div class="modal" id="fridgeModal" onclick="closeModal(event, 'fridgeModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h2 style="margin-top:0">Что есть в холодильнике? 🥑</h2>
+      <div class="form-group">
+        <label>Введи продукты через запятую или пробел:</label>
+        <textarea id="fridgeInput" rows="3" placeholder="Например: яйцо, авокадо, огурец"></textarea>
+      </div>
+      <button class="btn" style="width:100%; justify-content:center; margin-bottom:16px;" onclick="findRecipesByFridge()">Найти рецепты</button>
+      
+      <div id="fridgeResults"></div>
+    </div>
   </div>
 
   <!-- Модалка авторизации -->
@@ -633,11 +663,17 @@
       </div>
 
       <div class="form-group">
-        <label>Ингредиенты, граммовка и калории</label>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <label style="margin:0;">Ингредиенты и БЖУ</label>
+          <span style="font-size:11px; color:var(--text-muted);">Продукт | Гр | Ккал | Б | Ж | У</span>
+        </div>
         <div id="ingredientsContainer"></div>
         <button type="button" class="btn-add-ing" onclick="addIngredientRow()">+ Добавить продукт</button>
-        <div style="text-align: right; margin-top: 8px; font-size: 13px; color: var(--text-muted);">
-          Итого калорий: <b id="totalCalsDisplay" style="color:var(--text);">0</b> ккал
+        <div style="background:rgba(0,0,0,0.03); padding:8px 12px; border-radius:12px; margin-top:10px; font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+          <span>Ккал: <b id="totalCalsDisplay" style="color:var(--text);">0</b></span>
+          <span>Белки: <b id="totalProteinDisplay" style="color:var(--text);">0</b> г</span>
+          <span>Жиры: <b id="totalFatDisplay" style="color:var(--text);">0</b> г</span>
+          <span>Углеводы: <b id="totalCarbsDisplay" style="color:var(--text);">0</b> г</span>
         </div>
       </div>
 
@@ -834,7 +870,6 @@
           </div>
         `;
 
-        // Загрузка данных пользователя из Firestore
         try {
           const snap = await getDoc(doc(db, "users", user.uid));
           if (snap.exists()) {
@@ -848,7 +883,6 @@
               localStorage.setItem('my_shopping_list', JSON.stringify(window.shopList));
             }
           } else {
-            // Если профиль новый, сразу заливаем локальные рецепты в облако
             await window.syncToCloud();
           }
           window.renderRecipes();
@@ -987,9 +1021,9 @@
         time: "10 мин",
         photo: "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&auto=format&fit=crop&q=80",
         ingredients: [
-          { name: "Хлеб зерновой", grams: 45, cals: 110 },
-          { name: "Авокадо", grams: 60, cals: 96 },
-          { name: "Яйцо куриное", grams: 55, cals: 80 }
+          { name: "Хлеб зерновой", grams: 45, cals: 110, p: 4, f: 1, c: 20 },
+          { name: "Авокадо", grams: 60, cals: 96, p: 1, f: 9, c: 5 },
+          { name: "Яйцо куриное", grams: 55, cals: 80, p: 7, f: 5.5, c: 0.5 }
         ],
         steps: "1. Подсушить тост на сковороде.\n2. Размять авокадо вилкой со щепоткой соли.\n3. Сверху выложить готовое яйцо."
       },
@@ -1001,9 +1035,9 @@
         time: "8 мин",
         photo: "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=600&auto=format&fit=crop&q=80",
         ingredients: [
-          { name: "Клубника", grams: 100, cals: 33 },
-          { name: "Банан", grams: 80, cals: 72 },
-          { name: "Греческий йогурт 2%", grams: 120, cals: 85 }
+          { name: "Клубника", grams: 100, cals: 33, p: 0.8, f: 0.4, c: 7.5 },
+          { name: "Банан", grams: 80, cals: 72, p: 1.2, f: 0.2, c: 17.5 },
+          { name: "Греческий йогурт 2%", grams: 120, cals: 85, p: 10, f: 2.4, c: 4.8 }
         ],
         steps: "1. Взбить в блендере йогурт и половину банана с клубникой.\n2. Перелить в миску и украсить ломтиками ягод."
       },
@@ -1015,9 +1049,9 @@
         time: "20 мин",
         photo: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80",
         ingredients: [
-          { name: "Слабосоленый лосось", grams: 80, cals: 160 },
-          { name: "Киноа вареная", grams: 120, cals: 140 },
-          { name: "Огурец и эдамаме", grams: 70, cals: 50 }
+          { name: "Слабосоленый лосось", grams: 80, cals: 160, p: 16, f: 10, c: 0 },
+          { name: "Киноа вареная", grams: 120, cals: 140, p: 5.2, f: 2.3, c: 25 },
+          { name: "Огурец и эдамаме", grams: 70, cals: 50, p: 4.5, f: 2, c: 3.5 }
         ],
         steps: "1. Выложить киноа в глубокую миску.\n2. Добавить ломтики лосося, нарезанный огурец и бобы.\n3. Полить соевым соусом."
       }
@@ -1144,6 +1178,89 @@
       applyPresetTheme('pink', true);
     }
 
+    /* Холодильник (поиск рецептов по имеющимся продуктам) */
+    function openFridgeModal() {
+      document.getElementById('fridgeResults').innerHTML = '';
+      document.getElementById('fridgeInput').value = '';
+      document.getElementById('fridgeModal').style.display = 'flex';
+    }
+
+    function findRecipesByFridge() {
+      const rawInput = document.getElementById('fridgeInput').value;
+      const terms = rawInput
+        .split(/[,;\n]+/)
+        .map(t => t.trim().toLowerCase())
+        .filter(t => t.length > 1);
+
+      const resultsBox = document.getElementById('fridgeResults');
+      resultsBox.innerHTML = '';
+
+      if (terms.length === 0) {
+        resultsBox.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:12px;">Укажите хотя бы один продукт 🌸</div>';
+        return;
+      }
+
+      const matches = [];
+
+      window.recipes.forEach(r => {
+        let matchedCount = 0;
+        const matchedIngs = [];
+
+        r.ingredients.forEach(ing => {
+          const ingName = ing.name.toLowerCase();
+          const isMatch = terms.some(term => {
+            const cleanTerm = term.slice(0, Math.max(3, term.length - 2));
+            return ingName.includes(term) || (cleanTerm.length >= 3 && ingName.includes(cleanTerm));
+          });
+
+          if (isMatch) {
+            matchedCount++;
+            matchedIngs.push(ing.name);
+          }
+        });
+
+        if (matchedCount > 0) {
+          matches.push({
+            recipe: r,
+            matchedCount,
+            totalIngs: r.ingredients.length,
+            matchedIngs
+          });
+        }
+      });
+
+      matches.sort((a, b) => b.matchedCount - a.matchedCount);
+
+      if (matches.length === 0) {
+        resultsBox.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:18px;">Ничего не найдено с такими продуктами 🥺</div>';
+        return;
+      }
+
+      resultsBox.innerHTML = `
+        <div style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">
+          Найдено блюд: <b>${matches.length}</b>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${matches.map(m => `
+            <div class="card" style="cursor:pointer; padding:12px;" onclick="openRecipeFromFridge(${m.recipe.id})">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h4 style="margin:0 0 4px; font-size:15px;">${m.recipe.title}</h4>
+                <span class="tag match">Нашлось ${m.matchedCount} из ${m.totalIngs}</span>
+              </div>
+              <div style="font-size:12px; color:var(--text-muted);">
+                Совпало: <b>${m.matchedIngs.join(', ')}</b>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function openRecipeFromFridge(id) {
+      document.getElementById('fridgeModal').style.display = 'none';
+      showRecipe(id);
+    }
+
     /* Список покупок */
     function openShopModal() {
       renderShopList();
@@ -1214,6 +1331,18 @@
       renderShopList();
     }
 
+    /* Подсчет БЖУ для рецепта */
+    function getRecipeTotals(r) {
+      return r.ingredients.reduce((acc, item) => {
+        acc.cals += Number(item.cals) || 0;
+        acc.p += Number(item.p) || 0;
+        acc.f += Number(item.f) || 0;
+        acc.c += Number(item.c) || 0;
+        acc.grams += Number(item.grams) || 0;
+        return acc;
+      }, { cals: 0, p: 0, f: 0, c: 0, grams: 0 });
+    }
+
     /* Полки и карточки рецептов */
     function updateShelfCounts() {
       const counts = { 'Все': window.recipes.length, 'Завтрак': 0, 'Обед': 0, 'Ужин': 0, 'Перекус': 0 };
@@ -1255,7 +1384,7 @@
       }
 
       filtered.forEach(r => {
-        const totalCals = r.ingredients.reduce((sum, item) => sum + (Number(item.cals) || 0), 0);
+        const totals = getRecipeTotals(r);
         const card = document.createElement('div');
         card.className = 'card';
         card.onclick = () => showRecipe(r.id);
@@ -1270,7 +1399,12 @@
               <span class="tag taste">${r.taste}</span>
             </div>
             <h3>${r.title}</h3>
-            <div class="card-meta">${totalCals} ккал • ${r.time || '15 мин'}</div>
+            <div class="card-meta">${totals.cals} ккал • ${r.time || '15 мин'}</div>
+            <div class="bzhu-badge">
+              <span>Б: ${totals.p.toFixed(1)}</span>
+              <span>Ж: ${totals.f.toFixed(1)}</span>
+              <span>У: ${totals.c.toFixed(1)}</span>
+            </div>
           </div>
         `;
         grid.appendChild(card);
@@ -1279,8 +1413,7 @@
 
     function showRecipe(id) {
       const r = window.recipes.find(x => x.id === id);
-      const totalCals = r.ingredients.reduce((sum, item) => sum + (Number(item.cals) || 0), 0);
-      const totalWeight = r.ingredients.reduce((sum, item) => sum + (Number(item.grams) || 0), 0);
+      const totals = getRecipeTotals(r);
 
       const view = document.getElementById('viewDetails');
       view.innerHTML = `
@@ -1290,11 +1423,17 @@
           <span class="tag taste">${r.taste}</span>
         </div>
         <h2 style="margin: 6px 0 4px;">${r.title}</h2>
-        <div style="color:var(--text-muted); font-size:14px; margin-bottom:16px;">
-          ${totalCals} ккал ${totalWeight ? `• ${totalWeight} г` : ''} • ${r.time}
+        <div style="color:var(--text-muted); font-size:14px; margin-bottom:10px;">
+          ${totals.cals} ккал ${totals.grams ? `• ${totals.grams} г` : ''} • ${r.time}
         </div>
 
-        <h4 style="margin: 16px 0 8px;">Ингредиенты:</h4>
+        <div style="background:var(--accent-soft); color:var(--accent); padding:8px 12px; border-radius:12px; font-weight:600; font-size:13px; display:inline-flex; gap:14px; margin-bottom:16px;">
+          <span>Б: ${totals.p.toFixed(1)} г</span>
+          <span>Ж: ${totals.f.toFixed(1)} г</span>
+          <span>У: ${totals.c.toFixed(1)} г</span>
+        </div>
+
+        <h4 style="margin: 14px 0 8px;">Ингредиенты:</h4>
         <div>
           ${r.ingredients.map(ing => `
             <div class="ing-list-item">
@@ -1303,7 +1442,12 @@
                 <span>${ing.name}</span>
               </div>
               <div class="ing-right">
-                <span>${ing.grams ? ing.grams + ' г ' : ''}${ing.cals ? '(' + ing.cals + ' ккал)' : ''}</span>
+                <span>
+                  ${ing.grams ? ing.grams + ' г ' : ''}
+                  ${ing.cals ? '(' + ing.cals + ' ккал' : ''}
+                  ${(ing.p || ing.f || ing.c) ? ` • Б:${ing.p || 0} Ж:${ing.f || 0} У:${ing.c || 0}` : ''}
+                  ${ing.cals ? ')' : ''}
+                </span>
                 <button title="В корзину" style="background:var(--accent-soft); color:var(--accent); border:none; border-radius:6px; padding:3px 6px; cursor:pointer;" onclick="addIngredientToShop('${ing.name} ${ing.grams ? ing.grams + 'г' : ''}')">🫧+</button>
               </div>
             </div>
@@ -1321,28 +1465,37 @@
       document.getElementById('viewModal').style.display = 'flex';
     }
 
-    function addIngredientRow(name = '', grams = '', cals = '') {
+    function addIngredientRow(name = '', grams = '', cals = '', p = '', f = '', c = '') {
       const container = document.getElementById('ingredientsContainer');
       const row = document.createElement('div');
       row.className = 'ing-row';
       row.innerHTML = `
         <input type="text" placeholder="Продукт" value="${name}">
-        <input type="number" placeholder="Граммы" value="${grams}" oninput="calcTotalCals()">
-        <input type="number" placeholder="Ккал" value="${cals}" oninput="calcTotalCals()">
-        <button type="button" class="btn-del" onclick="this.parentElement.remove(); calcTotalCals();">&times;</button>
+        <input type="number" step="any" placeholder="Гр" value="${grams}" oninput="calcTotals()">
+        <input type="number" step="any" placeholder="Ккал" value="${cals}" oninput="calcTotals()">
+        <input type="number" step="any" placeholder="Б" value="${p}" oninput="calcTotals()" title="Белки">
+        <input type="number" step="any" placeholder="Ж" value="${f}" oninput="calcTotals()" title="Жиры">
+        <input type="number" step="any" placeholder="У" value="${c}" oninput="calcTotals()" title="Углеводы">
+        <button type="button" class="btn-del" onclick="this.parentElement.remove(); calcTotals();">&times;</button>
       `;
       container.appendChild(row);
-      calcTotalCals();
+      calcTotals();
     }
 
-    function calcTotalCals() {
+    function calcTotals() {
       const rows = document.querySelectorAll('#ingredientsContainer .ing-row');
-      let total = 0;
+      let totalCals = 0, totalP = 0, totalF = 0, totalC = 0;
       rows.forEach(r => {
-        const cals = Number(r.querySelectorAll('input')[2].value) || 0;
-        total += cals;
+        const inputs = r.querySelectorAll('input');
+        totalCals += Number(inputs[2].value) || 0;
+        totalP += Number(inputs[3].value) || 0;
+        totalF += Number(inputs[4].value) || 0;
+        totalC += Number(inputs[5].value) || 0;
       });
-      document.getElementById('totalCalsDisplay').textContent = total;
+      document.getElementById('totalCalsDisplay').textContent = totalCals;
+      document.getElementById('totalProteinDisplay').textContent = totalP.toFixed(1);
+      document.getElementById('totalFatDisplay').textContent = totalF.toFixed(1);
+      document.getElementById('totalCarbsDisplay').textContent = totalC.toFixed(1);
     }
 
     function handleDishPhotoUpload(e) {
@@ -1408,7 +1561,7 @@
 
       const container = document.getElementById('ingredientsContainer');
       container.innerHTML = '';
-      r.ingredients.forEach(i => addIngredientRow(i.name, i.grams, i.cals));
+      r.ingredients.forEach(i => addIngredientRow(i.name, i.grams, i.cals, i.p, i.f, i.c));
 
       document.getElementById('recipeModal').style.display = 'flex';
     }
@@ -1426,7 +1579,10 @@
           ingredients.push({
             name,
             grams: inputs[1].value ? Number(inputs[1].value) : '',
-            cals: inputs[2].value ? Number(inputs[2].value) : ''
+            cals: inputs[2].value ? Number(inputs[2].value) : '',
+            p: inputs[3].value ? Number(inputs[3].value) : '',
+            f: inputs[4].value ? Number(inputs[4].value) : '',
+            c: inputs[5].value ? Number(inputs[5].value) : ''
           });
         }
       });
@@ -1494,11 +1650,11 @@
       }
 
       const randomDish = candidates[Math.floor(Math.random() * candidates.length)];
-      const totalCals = randomDish.ingredients.reduce((sum, item) => sum + (Number(item.cals) || 0), 0);
+      const totals = getRecipeTotals(randomDish);
 
       resBox.style.display = 'block';
       document.getElementById('randTitle').textContent = randomDish.title;
-      document.getElementById('randMeta').textContent = `${randomDish.meal} • ${randomDish.taste} • ${totalCals} ккал`;
+      document.getElementById('randMeta').textContent = `${randomDish.meal} • ${randomDish.taste} • ${totals.cals} ккал (Б:${totals.p.toFixed(0)} Ж:${totals.f.toFixed(0)} У:${totals.c.toFixed(0)})`;
       
       const openBtn = document.getElementById('randOpenBtn');
       openBtn.style.display = 'inline-block';
