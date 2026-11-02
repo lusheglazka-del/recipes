@@ -64,6 +64,7 @@
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .btn {
@@ -89,6 +90,28 @@
       color: var(--text);
       border: 1px solid var(--card-border);
       backdrop-filter: blur(8px);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 5px 10px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .btn-logout {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 2px 4px;
+      font-family: inherit;
     }
 
     /* Полки-вкладки в стиле Telegram */
@@ -369,6 +392,41 @@
       text-decoration: line-through;
       color: var(--text-muted);
     }
+
+    /* Авторизация стили */
+    .auth-tab-switch {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .auth-tab-btn {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .auth-tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-google {
+      background: #ffffff;
+      color: #3c4043;
+      border: 1px solid #dadce0;
+      width: 100%;
+      justify-content: center;
+      padding: 10px;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
   </style>
 </head>
 <body>
@@ -377,6 +435,9 @@
     <header>
       <h1>рецептекеее</h1>
       <div class="header-btns">
+        <div id="authHeaderArea">
+          <button class="btn btn-secondary" onclick="openAuthModal('login')">Вход / Регистрация</button>
+        </div>
         <button class="btn btn-secondary" onclick="openShopModal()">🫧 Корзина</button>
         <button class="btn btn-secondary" onclick="openThemeModal()">🎀 Тема</button>
         <button class="btn btn-secondary" onclick="openRandomModal()">🔮 Нет идей?</button>
@@ -418,6 +479,41 @@
     </div>
 
     <div class="grid" id="recipeGrid"></div>
+  </div>
+
+  <!-- Модалка авторизации -->
+  <div class="modal" id="authModal" onclick="closeModal(event, 'authModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="auth-tab-switch">
+        <div class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthMode('login')">Вход</div>
+        <div class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthMode('register')">Регистрация</div>
+      </div>
+
+      <div class="form-group" id="groupNick" style="display:none;">
+        <label>Твой никнейм</label>
+        <input type="text" id="authNick" placeholder="Например: Софа">
+      </div>
+
+      <div class="form-group">
+        <label>Электронная почта</label>
+        <input type="email" id="authEmail" placeholder="name@example.com">
+      </div>
+
+      <div class="form-group">
+        <label>Пароль</label>
+        <input type="password" id="authPassword" placeholder="Минимум 6 символов">
+      </div>
+
+      <div id="authErrorMsg" style="color:#e62e2e; font-size:13px; margin-bottom:10px; display:none;"></div>
+
+      <button class="btn" style="width:100%; justify-content:center; padding:11px;" id="authActionBtn" onclick="submitAuth()">Войти</button>
+
+      <div style="text-align:center; margin:14px 0 6px; font-size:12px; color:var(--text-muted);">или через аккаунт</div>
+      <button class="btn btn-google" onclick="loginGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle; margin-right:6px;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Войти через Google
+      </button>
+    </div>
   </div>
 
   <!-- Модалка стилизации -->
@@ -596,6 +692,132 @@
     </div>
   </div>
 
+  <!-- Firebase SDK и логика Авторизации -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+    import { 
+      getAuth, 
+      createUserWithEmailAndPassword, 
+      signInWithEmailAndPassword, 
+      signInWithPopup, 
+      GoogleAuthProvider, 
+      signOut, 
+      onAuthStateChanged,
+      updateProfile 
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyA4i4y_YCSlY6HwpRjG9H3vtGQ56ixD_Lo",
+      authDomain: "recipes-53efe.firebaseapp.com",
+      projectId: "recipes-53efe",
+      storageBucket: "recipes-53efe.firebasestorage.app",
+      messagingSenderId: "175829117430",
+      appId: "1:175829117430:web:0598cb0aa013133b6effd7",
+      measurementId: "G-9W75KBK4YW"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+    const googleProvider = new GoogleAuthProvider();
+
+    let authMode = 'login';
+
+    window.openAuthModal = function(mode = 'login') {
+      switchAuthMode(mode);
+      document.getElementById('authErrorMsg').style.display = 'none';
+      document.getElementById('authModal').style.display = 'flex';
+    };
+
+    window.switchAuthMode = function(mode) {
+      authMode = mode;
+      const tabLogin = document.getElementById('tabLoginBtn');
+      const tabRegister = document.getElementById('tabRegisterBtn');
+      const nickGroup = document.getElementById('groupNick');
+      const actionBtn = document.getElementById('authActionBtn');
+
+      if (mode === 'register') {
+        tabRegister.classList.add('active');
+        tabLogin.classList.remove('active');
+        nickGroup.style.display = 'block';
+        actionBtn.textContent = 'Зарегистрироваться';
+      } else {
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+        nickGroup.style.display = 'none';
+        actionBtn.textContent = 'Войти';
+      }
+    };
+
+    window.submitAuth = async function() {
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const nick = document.getElementById('authNick').value.trim();
+      const errEl = document.getElementById('authErrorMsg');
+
+      errEl.style.display = 'none';
+
+      if (!email || !password) {
+        errEl.textContent = 'Заполните почту и пароль!';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      try {
+        if (authMode === 'register') {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          if (nick) {
+            await updateProfile(userCredential.user, { displayName: nick });
+          }
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+        }
+        document.getElementById('authModal').style.display = 'none';
+      } catch (error) {
+        let msg = error.message;
+        if (error.code === 'auth/invalid-email') msg = 'Некорректный email';
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') msg = 'Неверный логин или пароль';
+        if (error.code === 'auth/email-already-in-use') msg = 'Этот email уже зарегистрирован';
+        if (error.code === 'auth/weak-password') msg = 'Пароль должен быть не менее 6 знаков';
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+      }
+    };
+
+    window.loginGoogle = async function() {
+      try {
+        await signInWithPopup(auth, googleProvider);
+        document.getElementById('authModal').style.display = 'none';
+      } catch (error) {
+        const errEl = document.getElementById('authErrorMsg');
+        errEl.textContent = error.message;
+        errEl.style.display = 'block';
+      }
+    };
+
+    window.logout = async function() {
+      await signOut(auth);
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      const headerArea = document.getElementById('authHeaderArea');
+      if (user) {
+        const name = user.displayName || user.email.split('@')[0];
+        headerArea.innerHTML = `
+          <div class="user-pill">
+            <span>🌸 ${name}</span>
+            <button class="btn-logout" onclick="logout()">Выйти</button>
+          </div>
+        `;
+      } else {
+        headerArea.innerHTML = `
+          <button class="btn btn-secondary" onclick="openAuthModal('login')">Вход / Регистрация</button>
+        `;
+      }
+    });
+  </script>
+
   <script>
     const themePresets = {
       pink: {
@@ -636,7 +858,7 @@
       },
       autumn: {
         bg: '#fcf6ed',
-        cardBg: 'rgba(255, 253, 249, 0.94)',
+        cardBg: 'rgba(255, 255, 255, 0.94)',
         cardBorder: '#eddcc8',
         text: '#4a2f13',
         textMuted: '#7f6345',
@@ -1240,4 +1462,3 @@
   </script>
 </body>
 </html>
-
