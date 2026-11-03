@@ -57,7 +57,7 @@
       font-size: 22px;
       font-weight: 700;
       letter-spacing: -0.4px;
-      text-shadow: 0 1px 3px rgba(255,255,255,0.4);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.25);
     }
 
     .header-btns {
@@ -235,8 +235,8 @@
       background: var(--accent-soft);
       color: var(--accent);
     }
-    .tag.taste { background: rgba(0,0,0,0.06); color: var(--text-muted); }
-    .tag.match { background: #e0f2fe; color: #0284c7; }
+    .tag.taste { background: rgba(255,255,255,0.08); color: var(--text-muted); }
+    .tag.match { background: rgba(0, 245, 212, 0.2); color: #00f5d4; }
 
     .card h3 {
       margin: 0 0 6px;
@@ -256,7 +256,7 @@
       margin-top: 6px;
       font-size: 11px;
       color: var(--text-muted);
-      background: rgba(0,0,0,0.03);
+      background: rgba(0,0,0,0.05);
       padding: 4px 8px;
       border-radius: 8px;
       width: fit-content;
@@ -267,8 +267,8 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.48);
-      backdrop-filter: blur(6px);
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
       justify-content: center;
       align-items: flex-end;
       z-index: 100;
@@ -282,7 +282,7 @@
       padding: 22px;
       max-height: 90vh;
       overflow-y: auto;
-      box-shadow: 0 -8px 28px rgba(0,0,0,0.12);
+      box-shadow: 0 -8px 28px rgba(0,0,0,0.2);
       border: 1px solid var(--card-border);
     }
     @media (min-width: 640px) {
@@ -304,7 +304,7 @@
       border: 1px solid var(--card-border);
       border-radius: 10px;
       font-size: 15px;
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.08);
       outline: none;
       color: var(--text);
       font-family: inherit;
@@ -312,7 +312,7 @@
     .form-row { display: flex; gap: 10px; }
     .form-row > * { flex: 1; }
 
-    /* Строка добавления ингредиента с БЖУ */
+    /* Строка добавления ингредиента */
     .ing-row {
       display: flex;
       gap: 5px;
@@ -376,8 +376,8 @@
       width: 46px;
       height: 46px;
       border-radius: 14px;
-      border: 2px solid #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      border: 2px solid rgba(255,255,255,0.7);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
       cursor: pointer;
       transition: transform 0.15s ease;
       display: flex;
@@ -398,7 +398,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 12px;
-      background: rgba(255, 255, 255, 0.6);
+      background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 12px;
       margin-bottom: 8px;
@@ -497,7 +497,7 @@
     <div class="grid" id="recipeGrid"></div>
   </div>
 
-  <!-- Модалка холодильника (подбор блюд по продуктам) -->
+  <!-- Модалка холодильника -->
   <div class="modal" id="fridgeModal" onclick="closeModal(event, 'fridgeModal')">
     <div class="modal-content" onclick="event.stopPropagation()">
       <h2 style="margin-top:0">Что есть в холодильнике? 🥑</h2>
@@ -555,6 +555,7 @@
         <label>Готовые темы (обои сохраняются при смене темы!)</label>
         <div class="color-swatches">
           <div class="swatch" style="background:#ffccd9;" title="Розовая няшная" onclick="applyPresetTheme('pink')">🎀</div>
+          <div class="swatch" style="background: radial-gradient(circle at 30% 30%, #00f5d4, #ff0055 60%, #120c1f 100%);" title="Неоновый тепловизор (Радуга)" onclick="applyPresetTheme('rainbow')">🌈</div>
           <div class="swatch" style="background:#ff4d4d;" title="Красная яркая" onclick="applyPresetTheme('red')">🍓</div>
           <div class="swatch" style="background:#7a1c28;" title="Бордовая винная" onclick="applyPresetTheme('burgundy')">🍷</div>
           <div class="swatch" style="background:#8c6239;" title="Коричневая (Осень)" onclick="applyPresetTheme('autumn')">🍂</div>
@@ -669,7 +670,7 @@
         </div>
         <div id="ingredientsContainer"></div>
         <button type="button" class="btn-add-ing" onclick="addIngredientRow()">+ Добавить продукт</button>
-        <div style="background:rgba(0,0,0,0.03); padding:8px 12px; border-radius:12px; margin-top:10px; font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+        <div style="background:rgba(0,0,0,0.05); padding:8px 12px; border-radius:12px; margin-top:10px; font-size:13px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;">
           <span>Ккал: <b id="totalCalsDisplay" style="color:var(--text);">0</b></span>
           <span>Белки: <b id="totalProteinDisplay" style="color:var(--text);">0</b> г</span>
           <span>Жиры: <b id="totalFatDisplay" style="color:var(--text);">0</b> г</span>
@@ -914,6 +915,19 @@
         navActive: '#ffffff',
         font: "'Comfortaa', cursive, sans-serif"
       },
+      rainbow: {
+        bg: '#0a0914',
+        gradient: 'radial-gradient(circle at 10% 20%, #00f5d4 0%, transparent 35%), radial-gradient(circle at 85% 15%, #ff0055 0%, transparent 38%), radial-gradient(circle at 45% 55%, #ff4500 0%, transparent 40%), radial-gradient(circle at 25% 85%, #6a00f4 0%, transparent 45%), radial-gradient(circle at 90% 85%, #ffb703 0%, transparent 35%), #0c0b16',
+        cardBg: 'rgba(18, 14, 30, 0.85)',
+        cardBorder: 'rgba(255, 255, 255, 0.16)',
+        text: '#ffffff',
+        textMuted: '#c5c2d8',
+        accent: '#ff2a70',
+        accentSoft: 'rgba(255, 42, 112, 0.25)',
+        navBg: 'rgba(18, 14, 30, 0.85)',
+        navActive: 'rgba(45, 28, 70, 0.95)',
+        font: "'Comfortaa', cursive, sans-serif"
+      },
       red: {
         bg: '#fff2f2',
         cardBg: 'rgba(255, 255, 255, 0.94)',
@@ -1098,6 +1112,8 @@
       const currentWallpaper = localStorage.getItem('my_app_wallpaper');
       if (currentWallpaper) {
         document.body.style.backgroundImage = `url(${currentWallpaper})`;
+      } else if (t.gradient) {
+        document.body.style.backgroundImage = t.gradient;
       } else {
         document.body.style.backgroundImage = 'none';
       }
@@ -1165,10 +1181,11 @@
     }
 
     function removeWallpaper() {
-      document.body.style.backgroundImage = 'none';
       localStorage.removeItem('my_app_wallpaper');
       const activeKey = localStorage.getItem('my_app_theme_key') || 'pink';
-      document.body.style.backgroundColor = (themePresets[activeKey] || themePresets.pink).bg;
+      const t = themePresets[activeKey] || themePresets.pink;
+      document.body.style.backgroundColor = t.bg;
+      document.body.style.backgroundImage = t.gradient || 'none';
     }
 
     function resetBackground() {
@@ -1178,7 +1195,7 @@
       applyPresetTheme('pink', true);
     }
 
-    /* Холодильник (поиск рецептов по имеющимся продуктам) */
+    /* Холодильник */
     function openFridgeModal() {
       document.getElementById('fridgeResults').innerHTML = '';
       document.getElementById('fridgeInput').value = '';
@@ -1331,7 +1348,7 @@
       renderShopList();
     }
 
-    /* Подсчет БЖУ для рецепта */
+    /* Подсчет БЖУ */
     function getRecipeTotals(r) {
       return r.ingredients.reduce((acc, item) => {
         acc.cals += Number(item.cals) || 0;
